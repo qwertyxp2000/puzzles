@@ -7,9 +7,9 @@ sundae_toppings = ["Cherry-on-top", "Whipped Cream", "Chocolate Sauce"]
 people = ["Arno", "Willa", "Shyler"]
 
 # Assign random favorites (mutually exclusive toppings)
-favorites = {}
-used_pizza = set()
-used_sundae = set()
+favorites = {} # Set of favorite pizza-sundaes
+used_pizza = set() # List of used pizzas
+used_sundae = set() # List of used sundaes
 
 for person in people:
     available_pizza = [t for t in pizza_toppings if t not in used_pizza]
@@ -34,19 +34,31 @@ while len(rejects) < 4:
         rejects.add((frozenset(random_pizza), frozenset(random_sundae)))
 
 # Function to evaluate a guess
-def evaluate_guess(pizza_guess, sundae_guess):
-    result = {}
+def evaluate_guess(pizza_guess, sundae_guess, favorites):
+    results = {}
+
     for person, (fav_pizza, fav_sundae) in favorites.items():
-        pizza_match = pizza_guess == fav_pizza
-        sundae_match = sundae_guess == fav_sundae
-        
-        if pizza_match and sundae_match:
-            result[person] = "Favored"
-        elif (pizza_guess & fav_pizza) and (sundae_guess & fav_sundae):
+        # Check for perfect match: exact pizza and exact sundae
+        if pizza_guess == fav_pizza and sundae_guess == fav_sundae:
+            result = "Favored"
+
+        # Otherwise, check for Lack:
+        # - Pizza is a partial match (some toppings match) OR empty guess allowed if favorite pizza toppings are empty
+        # - AND Sundae is a partial match OR empty guess allowed if favorite sundae toppings are empty
+        elif (# No extra toppings guessed that they don't like
+             not (pizza_guess - fav_pizza)
+             and
+             not (sundae_guess - fav_sundae)
+        ):
             result = "Lack"
+
+        # Otherwise, it's a Reject
         else:
             result = "Reject"
-    return result
+
+        results[person] = result
+
+    return results
 
 # Pretty print functions
 def print_toppings(label, toppings):
@@ -65,13 +77,13 @@ print("\n=== Ready for Guesses! ===\n")
 
 # Interactive mode example
 while True:
-    raw_pizza = input("Enter pizza toppings separated by commas (or blank for none): ").strip()
-    pizza_guess = set(tp.strip() for tp in raw_pizza.split(",") if tp.strip())
-    
-    raw_sundae = input("Enter sundae toppings separated by commas (or blank for none): ").strip()
-    sundae_guess = set(tp.strip() for tp in raw_sundae.split(",") if tp.strip())
+    pizza_input = input("Enter pizza toppings separated by commas (or blank for none): ").strip()
+    pizza_guess = set(t.strip() for t in pizza_input.split(",") if t) if pizza_input else set()
 
-    results = evaluate_guess(pizza_guess, sundae_guess)
+    sundae_input = input("Enter sundae toppings separated by commas (or blank for none): ").strip()
+    sundae_guess = set(t.strip() for t in sundae_input.split(",") if t) if sundae_input else set()
+
+    results = evaluate_guess(pizza_guess, sundae_guess, favorites)
     print("\nResult of guess:")
     for person, outcome in results.items():
         print(f"{person}: {outcome}")
