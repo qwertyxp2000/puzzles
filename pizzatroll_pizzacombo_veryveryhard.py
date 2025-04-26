@@ -42,7 +42,7 @@ def evaluate_guess(pizza_guess, sundae_guess):
         
         if pizza_match and sundae_match:
             result[person] = "Favored"
-        elif (pizza_guess & fav_pizza and sundae_guess & fav_sundae):
+        elif (pizza_guess & fav_pizza or sundae_guess & fav_sundae):
             result[person] = "Lack"
         else:
             result[person] = "Reject"
