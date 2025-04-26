@@ -1,49 +1,67 @@
-from itertools import product, combinations
-from collections import defaultdict
+import random
 
-# Generate all possible 8-bit combos (pizza-sundaes)
-all_combos = list(product([0, 1], repeat=8))
+# Define toppings
+pizza_toppings = ["Olives", "Pepperoni", "Peppers", "Mushrooms", "Cheese"]
+sundae_toppings = ["Cherry-on-top", "Whipped Cream", "Chocolate Sauce"]
 
-# Generate all 3^8 ways to assign each of the 8 toppings to one of 3 people (0, 1, 2)
-all_assignments = list(product([0, 1, 2], repeat=8))
+people = ["Arno", "Willa", "Shyler"]
 
-# For each assignment, generate the 3 preferred combos (one per person)
-assignment_to_combos = defaultdict(set)
-for assign in all_assignments:
-    person_combos = {0: [0]*8, 1: [0]*8, 2: [0]*8}
-    for i, p in enumerate(assign):
-        person_combos[p][i] = 1
-    assignment_to_combos[tuple(assign)] = {
-        tuple(person_combos[0]),
-        tuple(person_combos[1]),
-        tuple(person_combos[2]),
-    }
+# Assign random favorites
+favorites = {}
+for person in people:
+    fav_pizza = random.sample(pizza_toppings, random.randint(0, len(pizza_toppings)))
+    fav_sundae = random.sample(sundae_toppings, random.randint(0, len(sundae_toppings)))
+    favorites[person] = (set(fav_pizza), set(fav_sundae))
 
-# Create a reverse map: for each combo, which assignments include it as a preferred combo
-combo_to_assignments = defaultdict(set)
-for assign, combos in assignment_to_combos.items():
-    for combo in combos:
-        combo_to_assignments[combo].add(assign)
+# Generate 4 random reject combos
+rejects = set()
+while len(rejects) < 4:
+    random_pizza = set(random.sample(pizza_toppings, random.randint(0, len(pizza_toppings))))
+    random_sundae = set(random.sample(sundae_toppings, random.randint(0, len(sundae_toppings))))
+    # Make sure this combo isn't someone's favored
+    if all((random_pizza != favs[0] or random_sundae != favs[1]) for favs in favorites.values()):
+        rejects.add((frozenset(random_pizza), frozenset(random_sundae)))
 
-# Choose all 4-combo subsets and compute how many assignments they eliminate
-combo_sets = list(combinations(all_combos, 4))
+# Function to evaluate a guess
+def evaluate_guess(pizza_guess, sundae_guess):
+    result = {}
+    for person, (fav_pizza, fav_sundae) in favorites.items():
+        pizza_match = pizza_guess == fav_pizza
+        sundae_match = sundae_guess == fav_sundae
+        
+        if pizza_match and sundae_match:
+            result[person] = "Favored"
+        elif (pizza_guess & fav_pizza or sundae_guess & fav_sundae):
+            result[person] = "Lack"
+        else:
+            result[person] = "Reject"
+    return result
 
-# Let's test a subset of them for feasibility (due to combinatorial explosion)
-sample_combo_sets = combo_sets[::10000]  # Sampled for performance
-results = []
+# Pretty print functions
+def print_toppings(label, toppings):
+    return label + (": (none)" if not toppings else ": " + ", ".join(toppings))
 
-for combo_set in sample_combo_sets:
-    eliminated = set()
-    for combo in combo_set:
-        eliminated.update(combo_to_assignments[combo])
-    results.append((combo_set, len(eliminated)))
+# --- Simulation starts ---
+print("=== Secret Favorites (for debug) ===")
+for person, (p, s) in favorites.items():
+    print(f"{person}:\n  Pizza {print_toppings('Toppings', p)}\n  Sundae {print_toppings('Toppings', s)}")
 
-# Find best and worst cases among the sample
-best = max(results, key=lambda x: x[1])
-worst = min(results, key=lambda x: x[1])
+print("\n=== Pre-generated Rejects ===")
+for idx, (p, s) in enumerate(rejects, 1):
+    print(f"Reject {idx}:\n  Pizza {print_toppings('Toppings', p)}\n  Sundae {print_toppings('Toppings', s)}")
 
-print("Best 4 rejects (eliminate the most assignments):", best[0])
-print("Number of assignments eliminated:", best[1])
-print("\nWorst 4 rejects (eliminate the fewest assignments):", worst[0])
-print("Number of assignments eliminated:", worst[1])
-print(f"\nEvaluated {len(sample_combo_sets)} 4-reject sets.")
+print("\n=== Ready for Guesses! ===\n")
+
+# Interactive mode example
+while True:
+    raw_pizza = input("Enter pizza toppings separated by commas (or blank for none): ").strip()
+    pizza_guess = set(tp.strip() for tp in raw_pizza.split(",") if tp.strip())
+    
+    raw_sundae = input("Enter sundae toppings separated by commas (or blank for none): ").strip()
+    sundae_guess = set(tp.strip() for tp in raw_sundae.split(",") if tp.strip())
+
+    results = evaluate_guess(pizza_guess, sundae_guess)
+    print("\nResult of guess:")
+    for person, outcome in results.items():
+        print(f"{person}: {outcome}")
+    print("\n----------------------\n")
