@@ -6,12 +6,23 @@ sundae_toppings = ["Cherry-on-top", "Whipped Cream", "Chocolate Sauce"]
 
 people = ["Arno", "Willa", "Shyler"]
 
-# Assign random favorites
+# Assign random favorites (mutually exclusive toppings)
 favorites = {}
+used_pizza = set()
+used_sundae = set()
+
 for person in people:
-    fav_pizza = random.sample(pizza_toppings, random.randint(0, len(pizza_toppings)))
-    fav_sundae = random.sample(sundae_toppings, random.randint(0, len(sundae_toppings)))
-    favorites[person] = (set(fav_pizza), set(fav_sundae))
+    available_pizza = [t for t in pizza_toppings if t not in used_pizza]
+    available_sundae = [t for t in sundae_toppings if t not in used_sundae]
+    
+    # Randomly pick 0 or more available toppings
+    fav_pizza = set(random.sample(available_pizza, random.randint(0, len(available_pizza))))
+    fav_sundae = set(random.sample(available_sundae, random.randint(0, len(available_sundae))))
+    
+    used_pizza.update(fav_pizza)
+    used_sundae.update(fav_sundae)
+    
+    favorites[person] = (fav_pizza, fav_sundae)
 
 # Generate 4 random reject combos
 rejects = set()
@@ -31,7 +42,7 @@ def evaluate_guess(pizza_guess, sundae_guess):
         
         if pizza_match and sundae_match:
             result[person] = "Favored"
-        elif (pizza_guess & fav_pizza or sundae_guess & fav_sundae):
+        elif (pizza_guess & fav_pizza and sundae_guess & fav_sundae):
             result[person] = "Lack"
         else:
             result[person] = "Reject"
